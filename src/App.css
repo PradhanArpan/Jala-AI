@@ -1,88 +1,427 @@
-.jala-container {
-  max-width: 640px;
+/* ============================================================
+   WIM-Assistant — interface styles
+   Identity: the strata mark (WIM's seven layers, surface→depth)
+   Display: Space Grotesk · Body: Noto Sans · Labels: IBM Plex Mono
+   ============================================================ */
+
+/* ---------- top bar ---------- */
+.topbar {
+  border-bottom: 1px solid var(--hairline);
+  background: rgba(244, 248, 248, 0.92);
+  backdrop-filter: blur(6px);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.topbar-inner {
+  max-width: 860px;
   margin: 0 auto;
-  padding: 3rem 1.5rem;
-  text-align: left;
+  padding: 0.7rem 1.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
 }
 
-.jala-header {
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+}
+
+.brand-name {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 1.05rem;
+  letter-spacing: -0.01em;
+}
+
+.strata-mark {
+  display: inline-block;
+  vertical-align: middle;
+  flex-shrink: 0;
+}
+
+.topbar-link {
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-decoration: none;
+  color: var(--ink-soft);
+}
+
+.topbar-link:hover {
+  color: var(--brand);
+}
+
+/* ---------- hero ---------- */
+.main {
+  flex: 1;
+  width: 100%;
+  max-width: 860px;
+  margin: 0 auto;
+  padding: 0 1.25rem;
+}
+
+.hero {
+  padding: 3.5rem 0 1.5rem;
   text-align: center;
-  margin-bottom: 2rem;
 }
 
-.jala-header h1 {
-  font-size: 2.5rem;
-  margin-bottom: 0.25rem;
-  color: #0e7490;
+.eyebrow {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--brand);
+  margin: 0 0 1rem;
 }
 
-.jala-header p {
-  color: #555;
-  font-size: 1rem;
+.hero h1 {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: clamp(2.1rem, 5.5vw, 3.3rem);
+  line-height: 1.06;
+  letter-spacing: -0.025em;
+  margin: 0 0 1rem;
+  color: var(--brand-deep);
 }
 
-.jala-ask-box {
+.lede {
+  max-width: 34rem;
+  margin: 0 auto 2rem;
+  color: var(--ink-soft);
+  font-size: 1.02rem;
+}
+
+/* ---------- ask box ---------- */
+.ask-box {
   display: flex;
   gap: 0.5rem;
+  max-width: 40rem;
+  margin: 0 auto;
+  background: var(--card);
+  border: 1.5px solid var(--hairline);
+  border-radius: 14px;
+  padding: 0.4rem;
+  box-shadow: 0 1px 2px rgba(12, 43, 51, 0.05),
+    0 8px 28px -12px rgba(12, 43, 51, 0.12);
+  transition: border-color 0.15s ease;
 }
 
-.jala-ask-box input {
+.ask-box:focus-within {
+  border-color: var(--brand);
+}
+
+.ask-box input {
   flex: 1;
-  padding: 0.75rem 1rem;
-  font-size: 1rem;
-  border: 1px solid #ccc;
-  border-radius: 8px;
-}
-
-.jala-ask-box button {
-  padding: 0.75rem 1.5rem;
-  font-size: 1rem;
-  background-color: #0e7490;
-  color: white;
+  min-width: 0;
   border: none;
-  border-radius: 8px;
-  cursor: pointer;
+  background: transparent;
+  padding: 0.65rem 0.8rem;
+  font-size: 1rem;
+  color: var(--ink);
 }
 
-.jala-ask-box button:disabled {
-  opacity: 0.6;
+.ask-box input::placeholder {
+  color: var(--ink-faint);
+}
+
+.ask-box input:focus {
+  outline: none;
+}
+
+.ask-btn {
+  border: none;
+  border-radius: 10px;
+  padding: 0.65rem 1.5rem;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 0.95rem;
+  color: #fff;
+  background: linear-gradient(180deg, var(--brand) 0%, var(--brand-deep) 130%);
+  cursor: pointer;
+  transition: filter 0.15s ease;
+}
+
+.ask-btn:hover:not(:disabled) {
+  filter: brightness(1.08);
+}
+
+.ask-btn:disabled {
+  opacity: 0.65;
   cursor: default;
 }
 
-.jala-answer {
-  margin-top: 2rem;
-  padding: 1.25rem;
-  border: 1px solid #e2e2e2;
-  border-radius: 10px;
-  background: #fafafa;
-}
-
-.jala-badges {
+/* ---------- example chips ---------- */
+.chips {
+  margin: 1.4rem auto 0;
+  max-width: 44rem;
   display: flex;
-  gap: 0.5rem;
   flex-wrap: wrap;
-  margin-bottom: 0.75rem;
+  justify-content: center;
+  gap: 0.5rem;
 }
 
-.jala-badge {
-  color: white;
-  font-size: 0.75rem;
-  padding: 0.25rem 0.6rem;
+.chip {
+  border: 1px solid var(--hairline);
+  background: var(--card);
+  color: var(--ink-soft);
   border-radius: 999px;
-}
-
-.jala-badge-warning {
-  background-color: #b91c1c;
-}
-
-.jala-answer-text {
-  font-size: 1rem;
-  line-height: 1.5;
-  color: #222;
-}
-
-.jala-answer-source {
-  margin-top: 0.75rem;
+  padding: 0.42rem 0.95rem;
   font-size: 0.85rem;
-  color: #777;
+  cursor: pointer;
+  transition: border-color 0.15s ease, color 0.15s ease,
+    background-color 0.15s ease;
+}
+
+.chip:hover {
+  border-color: var(--brand);
+  color: var(--brand-deep);
+  background: var(--brand-wash);
+}
+
+/* ---------- response area ---------- */
+.response {
+  padding: 1.25rem 0 3rem;
+}
+
+.answer-card {
+  max-width: 44rem;
+  margin: 0 auto;
+  background: var(--card);
+  border: 1px solid var(--hairline);
+  border-radius: 14px;
+  padding: 1.4rem 1.5rem;
+  text-align: left;
+  animation: rise 0.35s ease both;
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  margin-bottom: 0.9rem;
+}
+
+.badge {
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 0.28rem 0.7rem;
+  border-radius: 999px;
+  color: #fff;
+}
+
+.tier-curated {
+  background: var(--tier-curated);
+}
+
+.tier-web {
+  background: var(--tier-web);
+}
+
+.tier-pending {
+  background: var(--tier-pending);
+}
+
+.badge-gov {
+  color: var(--gov-ink);
+  background: var(--gov-wash);
+  border: 1px solid var(--gov-line);
+  text-transform: none;
+  letter-spacing: 0.01em;
+  font-family: var(--font-body);
+  font-weight: 600;
+  font-size: 0.75rem;
+}
+
+.answer-text {
+  margin: 0;
+  font-size: 1rem;
+  line-height: 1.65;
+  white-space: pre-wrap;
+}
+
+.answer-source {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  margin: 1rem 0 0;
+  padding-top: 0.9rem;
+  border-top: 1px solid var(--hairline);
+  font-size: 0.85rem;
+  color: var(--ink-soft);
+}
+
+/* ---------- loading state ---------- */
+.loading-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.9rem;
+  padding: 2rem 1.5rem;
+}
+
+.pulse-strata {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.pulse-strata span {
+  display: block;
+  height: 4px;
+  border-radius: 2px;
+  animation: strata-pulse 1.2s ease-in-out infinite;
+}
+
+.pulse-strata span:nth-child(1) { width: 44px; background: var(--s1); animation-delay: 0s; }
+.pulse-strata span:nth-child(2) { width: 44px; background: var(--s2); animation-delay: 0.1s; }
+.pulse-strata span:nth-child(3) { width: 44px; background: var(--s3); animation-delay: 0.2s; }
+.pulse-strata span:nth-child(4) { width: 32px; background: var(--s4); animation-delay: 0.3s; }
+.pulse-strata span:nth-child(5) { width: 22px; background: var(--s5); animation-delay: 0.4s; }
+
+@keyframes strata-pulse {
+  0%, 100% { opacity: 0.35; }
+  50% { opacity: 1; }
+}
+
+.loading-text {
+  margin: 0;
+  color: var(--ink-soft);
+  font-size: 0.9rem;
+}
+
+/* ---------- error state ---------- */
+.error-card {
+  border-color: #f1c5c5;
+}
+
+.error-title {
+  margin: 0 0 0.3rem;
+  font-family: var(--font-display);
+  font-weight: 700;
+  color: var(--tier-pending);
+}
+
+.error-text {
+  margin: 0;
+  color: var(--ink-soft);
+  font-size: 0.95rem;
+}
+
+/* ---------- about section ---------- */
+.about {
+  border-top: 1px solid var(--hairline);
+  background: var(--card);
+}
+
+.about-inner {
+  max-width: 860px;
+  margin: 0 auto;
+  padding: 3rem 1.25rem;
+}
+
+.about h2 {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 1.5rem;
+  letter-spacing: -0.015em;
+  margin: 0 0 0.8rem;
+  color: var(--brand-deep);
+}
+
+.about p {
+  max-width: 44rem;
+  margin: 0 0 1.8rem;
+  color: var(--ink-soft);
+}
+
+.layers {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 0.9rem 1.5rem;
+  counter-reset: layer;
+}
+
+.layers li {
+  counter-increment: layer;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.layers li::before {
+  content: '0' counter(layer);
+  display: block;
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  color: var(--ink-faint);
+  letter-spacing: 0.1em;
+  margin-bottom: 0.3rem;
+}
+
+.layer-bar {
+  display: block;
+  height: 4px;
+  border-radius: 2px;
+  margin-bottom: 0.45rem;
+  background: color-mix(
+    in srgb,
+    var(--s1) calc(100% - var(--i) * 16%),
+    var(--s5) calc(var(--i) * 16%)
+  );
+}
+
+/* ---------- footer ---------- */
+.footer {
+  border-top: 1px solid var(--hairline);
+  padding: 1.4rem 1.25rem 2rem;
+}
+
+.footer p {
+  max-width: 860px;
+  margin: 0 auto;
+  font-size: 0.78rem;
+  color: var(--ink-faint);
+  text-align: center;
+}
+
+/* ---------- mobile ---------- */
+@media (max-width: 480px) {
+  .hero {
+    padding-top: 2.4rem;
+  }
+
+  .ask-box {
+    flex-direction: column;
+    padding: 0.5rem;
+  }
+
+  .ask-btn {
+    width: 100%;
+    padding: 0.75rem;
+  }
+
+  .chips {
+    justify-content: flex-start;
+    text-align: left;
+  }
 }
