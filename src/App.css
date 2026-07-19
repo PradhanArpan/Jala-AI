@@ -526,6 +526,45 @@
   font-weight: 600;
 }
 
+.sat-date {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.15rem;
+  border: 1px solid rgba(167, 220, 232, 0.28);
+  border-radius: 999px;
+  padding: 0.1rem 0.2rem;
+  background: rgba(8, 61, 79, 0.5);
+}
+
+.sat-date span {
+  font-family: var(--font-mono);
+  font-size: 0.76rem;
+  color: #d8eef4;
+  padding: 0 0.3rem;
+  min-width: 6.6rem;
+  text-align: center;
+}
+
+.sat-date button {
+  border: none;
+  background: transparent;
+  color: var(--s1);
+  font-size: 1.05rem;
+  line-height: 1;
+  padding: 0.22rem 0.5rem;
+  border-radius: 999px;
+  cursor: pointer;
+}
+
+.sat-date button:hover {
+  background: rgba(167, 220, 232, 0.16);
+  color: #f2fafc;
+}
+
+.sat-gap-note {
+  color: rgba(167, 220, 232, 0.55);
+}
+
 /* the world map */
 .map {
   height: 460px;

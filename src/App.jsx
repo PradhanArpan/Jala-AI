@@ -46,9 +46,9 @@ const SAT_LAYERS = [
   {
     id: 'truecolor',
     label: 'True colour',
-    layer: 'MODIS_Terra_CorrectedReflectance_TrueColor',
+    layer: 'VIIRS_SNPP_CorrectedReflectance_TrueColor',
     opacity: 1,
-    legend: 'MODIS Terra corrected reflectance — what the satellite sees. Cloud, sediment plumes, snow and flooding are all visible directly.',
+    legend: 'VIIRS corrected reflectance — what the satellite sees. Cloud, sediment plumes, snow and flooding are visible directly. VIIRS has a wide enough swath to image the whole planet each day without gaps.',
   },
   {
     id: 'precip',
@@ -60,7 +60,7 @@ const SAT_LAYERS = [
   {
     id: 'lst',
     label: 'Land surface temp',
-    layer: 'MODIS_Terra_Land_Surface_Temp_Day',
+    layer: 'MODIS_Aqua_Land_Surface_Temp_Day',
     opacity: 0.75,
     legend: 'MODIS daytime land surface temperature — the skin temperature of the ground, a strong proxy for drought and heat stress.',
   },
@@ -69,15 +69,34 @@ const SAT_LAYERS = [
     label: 'Vegetation',
     layer: 'MODIS_Terra_NDVI_8Day',
     opacity: 0.8,
-    legend: 'MODIS NDVI, 8-day composite — vegetation vigour. Green is dense growth; pale is sparse or stressed cover.',
+    legend: 'MODIS NDVI, 8-day composite — vegetation vigour. Green is dense growth; pale is sparse or stressed cover. Composited over eight days, so daily gaps are filled.',
   },
 ]
 
 // GIBS daily products lag acquisition, so ask for a recent past
 // day rather than today (today is often empty worldwide).
-function gibsDate() {
-  const d = new Date(Date.now() - 3 * 86400000)
+function ymd(d) {
   return d.toISOString().slice(0, 10)
+}
+
+function defaultSatDate() {
+  return ymd(new Date(Date.now() - 2 * 86400000))
+}
+
+function shiftDate(iso, days) {
+  const d = new Date(iso + 'T00:00:00Z')
+  d.setUTCDate(d.getUTCDate() + days)
+  const cap = new Date(Date.now() - 86400000)
+  return d > cap ? ymd(cap) : ymd(d)
+}
+
+function prettyDate(iso) {
+  return new Date(iso + 'T00:00:00Z').toLocaleDateString(undefined, {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+    timeZone: 'UTC',
+  })
 }
 
 function StrataMark({ size = 22 }) {
@@ -318,7 +337,7 @@ function PlaceSearch({ onPick }) {
 // ------------------------------------------------------------
 // The world map. Click any point to read it.
 // ------------------------------------------------------------
-function WorldMap({ place, onPick, satId }) {
+function WorldMap({ place, onPick, satId, satDate }) {
   const elRef = useRef(null)
   const mapRef = useRef(null)
   const markerRef = useRef(null)
@@ -370,13 +389,13 @@ function WorldMap({ place, onPick, satId }) {
       format: 'image/png',
       transparent: true,
       version: '1.3.0',
-      time: gibsDate(),
+      time: satDate,
       opacity: cfg.opacity ?? 0.8,
       crossOrigin: true,
     })
     wms.addTo(map)
     overlayRef.current = wms
-  }, [satId])
+  }, [satId, satDate])
 
   // marker follows the selected place
   useEffect(() => {
@@ -456,6 +475,7 @@ function RainChart({ dates, rain, past7, next7 }) {
 function Observatory() {
   const [place, setPlace] = useState(START)
   const [satId, setSatId] = useState('truecolor')
+  const [satDate, setSatDate] = useState(defaultSatDate())
   const { d, state } = useObservations(place)
 
   const sat = SAT_LAYERS.find((s) => s.id === satId)
@@ -490,11 +510,45 @@ function Observatory() {
               </button>
             ))}
           </div>
+          {satId !== 'none' && (
+            <div className="sat-date">
+              <button
+                onClick={() => setSatDate((d) => shiftDate(d, -1))}
+                aria-label="Previous day"
+              >
+                ‹
+              </button>
+              <span>{prettyDate(satDate)}</span>
+              <button
+                onClick={() => setSatDate((d) => shiftDate(d, 1))}
+                aria-label="Next day"
+              >
+                ›
+              </button>
+            </div>
+          )}
         </div>
 
-        <WorldMap place={place} onPick={setPlace} satId={satId} />
+        <WorldMap
+          place={place}
+          onPick={setPlace}
+          satId={satId}
+          satDate={satDate}
+        />
 
-        {sat && sat.legend && <p className="sat-legend">{sat.legend}</p>}
+        {sat && sat.legend && (
+          <p className="sat-legend">
+            {sat.legend}
+            {satId !== 'none' && (
+              <span className="sat-gap-note">
+                {' '}
+                Polar-orbiting satellites build each day from successive
+                passes, so a day can be incomplete over some regions. Step
+                back a day if you hit a gap.
+              </span>
+            )}
+          </p>
+        )}
 
         <div className="readout">
           <p className="live-place">
