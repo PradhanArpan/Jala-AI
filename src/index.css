@@ -1,25 +1,31 @@
 :root {
-  /* WIM palette — water column, surface to depth (refined) */
-  --paper: #f6f9fa;
-  --paper-low: #eaf2f4;
-  --card: #ffffff;
-  --ink: #0b262e;
-  --ink-soft: #44626c;
-  --ink-faint: #7b939b;
-  --hairline: #d9e5e8;
-  --brand: #0b6b85;
-  --brand-deep: #06364a;
-  --brand-wash: #e1eff3;
+  /* WIM instrument palette
+     chrome: slate depths · panels: cool paper · data: strata blues
+     interactive: gauge amber */
+  --chrome: #0e1c22;
+  --chrome-2: #13252d;
+  --chrome-line: #24404a;
+  --chrome-ink: #dfeef2;
+  --chrome-soft: #7fa2ad;
 
-  /* dark instrument */
-  --deep-a: #073c4c;
-  --deep-b: #052732;
-  --deep-card: rgba(5, 39, 50, 0.85);
-  --deep-line: rgba(167, 220, 232, 0.17);
-  --deep-ink: #eef7f9;
-  --deep-soft: rgba(178, 222, 233, 0.8);
+  --paper: #f2f5f5;
+  --panel: #ffffff;
+  --ink: #14262c;
+  --ink-soft: #4a6069;
+  --ink-faint: #7f939a;
+  --hairline: #d8e1e3;
 
-  /* strata (the seven layers) */
+  --amber: #b96e1f;
+  --amber-strong: #a05d14;
+  --amber-wash: #f8ecdd;
+
+  --deep-a: #0b333f;
+  --deep-b: #071f28;
+  --deep-line: rgba(151, 203, 216, 0.18);
+  --deep-ink: #ecf6f8;
+  --deep-soft: rgba(170, 214, 224, 0.78);
+
+  /* strata (the seven layers) — data colours only */
   --s1: #a7dce8;
   --s2: #6fbfd4;
   --s3: #3e9db8;
@@ -27,14 +33,14 @@
   --s5: #0e5f7a;
 
   /* semantic tiers */
-  --tier-curated: #0f766e;
-  --tier-web: #a16207;
-  --tier-pending: #b91c1c;
-  --gov-ink: #92400e;
-  --gov-wash: #fef3e2;
-  --gov-line: #f3d9ae;
+  --tier-curated: #0f6e5f;
+  --tier-web: #9a6410;
+  --tier-pending: #a83232;
+  --gov-ink: #8a4a0e;
+  --gov-wash: #faf1e2;
+  --gov-line: #ecd6ab;
 
-  --font-display: 'Space Grotesk', 'Noto Sans', sans-serif;
+  --font-head: 'IBM Plex Sans', 'Noto Sans', sans-serif;
   --font-body: 'Noto Sans', 'Noto Sans Devanagari', 'Noto Sans Kannada',
     system-ui, sans-serif;
   --font-mono: 'IBM Plex Mono', ui-monospace, monospace;
@@ -50,13 +56,10 @@ html {
 
 body {
   margin: 0;
-  background:
-    radial-gradient(1100px 500px at 85% -10%, rgba(111, 191, 212, 0.14), transparent 60%),
-    linear-gradient(180deg, var(--paper) 0%, var(--paper-low) 100%);
-  background-attachment: fixed;
+  background: var(--paper);
   color: var(--ink);
   font-family: var(--font-body);
-  font-size: 16px;
+  font-size: 15.5px;
   line-height: 1.55;
   -webkit-font-smoothing: antialiased;
 }
@@ -73,11 +76,11 @@ input {
 }
 
 a {
-  color: var(--brand);
+  color: var(--amber-strong);
 }
 
 :focus-visible {
-  outline: 2px solid var(--brand);
+  outline: 2px solid var(--amber);
   outline-offset: 2px;
 }
 

@@ -234,12 +234,6 @@ const LOOP_STEPS = [
   { title: 'Gaps close', text: 'Unanswered questions are logged, expert-reviewed, and folded back into the corpus.' },
 ]
 
-const TABS = [
-  { id: 'ask', label: 'Ask' },
-  { id: 'observatory', label: 'Observatory' },
-  { id: 'about', label: 'About WIM' },
-]
-
 // ------------------------------------------------------------
 // helpers
 // ------------------------------------------------------------
@@ -284,6 +278,21 @@ function StrataMark({ size = 22 }) {
         <path d="M8 25h7" stroke="var(--s5)" />
       </g>
     </svg>
+  )
+}
+
+function UtcClock() {
+  const [now, setNow] = useState(() => new Date())
+  useEffect(() => {
+    const t = setInterval(() => setNow(new Date()), 1000)
+    return () => clearInterval(t)
+  }, [])
+  const p = (n) => String(n).padStart(2, '0')
+  return (
+    <span className="utc-clock" aria-label="Coordinated universal time">
+      {p(now.getUTCHours())}:{p(now.getUTCMinutes())}:{p(now.getUTCSeconds())}{' '}
+      UTC
+    </span>
   )
 }
 
@@ -606,207 +615,13 @@ function RainChart({ dates, rain, past7, next7 }) {
 }
 
 // ------------------------------------------------------------
-// Observatory tab
+// Reference desk — the assistant, docked as a console panel
 // ------------------------------------------------------------
-function Observatory({ visible, onAskAbout }) {
-  const [place, setPlace] = useState(null)
-  const [satId, setSatId] = useState('truecolor')
-  const [satDate, setSatDate] = useState(defaultSatDate())
-  const { d, status } = useObservations(place)
-
-  const sat = SAT_LAYERS.find((s) => s.id === satId)
-  // dedupe: a country-level result can have name === country
-  const whereParts = [place?.region, place?.country].filter(
-    (x, i, arr) => Boolean(x) && x !== place?.name && arr.indexOf(x) === i
-  )
-  const where = whereParts.join(' · ')
-  const anyLoading = Object.values(status).some((s) => s === 'loading')
-  const weatherOk = status.weather === 'ok'
-
-  return (
-    <div className="pane pane-dark">
-      <div className="pane-inner">
-        <header className="ob-head">
-          <div>
-            <p className="eyebrow eyebrow-light">Observation layer · live</p>
-            <h1>The water observatory</h1>
-            <p className="ob-sub">
-              Click anywhere on Earth, or search a place, to read current
-              conditions from open satellite and model data.
-            </p>
-          </div>
-          <PlaceSearch onPick={setPlace} />
-        </header>
-
-        <div className="sat-bar">
-          <span className="rail-label">Satellite layer</span>
-          <div className="sat-chips">
-            {SAT_LAYERS.map((s) => (
-              <button
-                key={s.id}
-                className={`sat-chip${satId === s.id ? ' is-on' : ''}`}
-                onClick={() => setSatId(s.id)}
-              >
-                {s.label}
-              </button>
-            ))}
-          </div>
-          {satId !== 'none' && (
-            <div className="sat-date">
-              <button onClick={() => setSatDate((v) => shiftDate(v, -1))} aria-label="Previous day">
-                ‹
-              </button>
-              <span>{prettyDate(satDate)}</span>
-              <button onClick={() => setSatDate((v) => shiftDate(v, 1))} aria-label="Next day">
-                ›
-              </button>
-            </div>
-          )}
-        </div>
-
-        <WorldMap
-          place={place}
-          onPick={setPlace}
-          satId={satId}
-          satDate={satDate}
-          visible={visible}
-        />
-
-        {sat && sat.legend && (
-          <p className="sat-legend">
-            {sat.legend}
-            <span className="sat-gap-note">
-              {' '}
-              Polar-orbiting satellites build each day from successive passes;
-              if a region looks incomplete, step back a day.
-            </span>
-          </p>
-        )}
-
-        <div className="readout">
-          {!place && (
-            <div className="ob-empty">
-              <StrataMark size={30} />
-              <p>
-                No point selected yet. Click the map or search a place, and the
-                connected feeds below will read it.
-              </p>
-            </div>
-          )}
-
-          {place && (
-            <p className="live-place">
-              {place.name}
-              {where && <span className="live-place-sub"> · {where}</span>}
-              <span className="live-coords">
-                {fmt(place.lat, 3)}°, {fmt(place.lon, 3)}°
-              </span>
-              {anyLoading && <span className="live-reading">reading…</span>}
-              {onAskAbout && !place.pin && (
-                <button
-                  className="ask-about"
-                  onClick={() => onAskAbout(place)}
-                >
-                  Ask about {place.name} →
-                </button>
-              )}
-            </p>
-          )}
-
-          {place && status.weather === 'error' && (
-            <p className="live-status">
-              The weather feed could not read this point. Try another point or
-              retry in a moment.
-            </p>
-          )}
-
-          {place && weatherOk && d && (
-            <>
-              {METRIC_GROUPS.map((g) => (
-                <div key={g.title}>
-                  <h2 className="group-head">{g.title}</h2>
-                  <div className="metrics">
-                    {g.metrics.map((m) => (
-                      <div key={m.field} className="metric">
-                        <span className="metric-value">
-                          {fmt(d[m.field], m.digits)}
-                          {m.pair ? (
-                            <span className="metric-sub"> / {fmt(d[m.pair], m.digits)}°</span>
-                          ) : (
-                            <em>{m.unit}</em>
-                          )}
-                        </span>
-                        <span className="metric-label">{m.label}</span>
-                      </div>
-                    ))}
-                  </div>
-                  {g.title === 'Rainfall and water balance' && d.dates && (
-                    <RainChart
-                      dates={d.dates}
-                      rain={d.rain}
-                      past7={d.rainPast7}
-                      next7={d.rainNext7}
-                    />
-                  )}
-                </div>
-              ))}
-            </>
-          )}
-        </div>
-
-        <div className="feeds">
-          <h2 className="group-head">Connected data feeds</h2>
-          <ul className="feed-list">
-            {FEEDS.map((f) => (
-              <li key={f.id} className="feed">
-                <span className={`feed-dot feed-${status[f.id] || 'idle'}`} aria-hidden="true" />
-                <span className="feed-name">{f.label}</span>
-                <span className="feed-provider">{f.provider}</span>
-              </li>
-            ))}
-            <li className="feed">
-              <span className="feed-dot feed-ok" aria-hidden="true" />
-              <span className="feed-name">Satellite imagery</span>
-              <span className="feed-provider">NASA GIBS — VIIRS, MODIS, GPM IMERG</span>
-            </li>
-            <li className="feed">
-              <span className="feed-dot feed-ok" aria-hidden="true" />
-              <span className="feed-name">Place search · base map</span>
-              <span className="feed-provider">
-                Open-Meteo geocoding · © OpenStreetMap, © CARTO
-              </span>
-            </li>
-          </ul>
-          <p className="live-note">
-            All feeds are open, keyless APIs read directly in your browser —
-            weather by{' '}
-            <a href="https://open-meteo.com/" target="_blank" rel="noreferrer">
-              Open-Meteo.com
-            </a>{' '}
-            (CC-BY 4.0), imagery via NASA{' '}
-            <a href="https://worldview.earthdata.nasa.gov/" target="_blank" rel="noreferrer">
-              GIBS / Worldview
-            </a>
-            . These are global model and satellite products, shown for
-            orientation and education; they are not official warnings and are
-            coarse at local scale. For decisions, use the responsible national
-            meteorological, hydrological or disaster management agency.
-          </p>
-        </div>
-      </div>
-    </div>
-  )
-}
-
-// ------------------------------------------------------------
-// Ask tab
-// ------------------------------------------------------------
-function Ask({ prefill }) {
+function Console({ prefill }) {
   const [question, setQuestion] = useState('')
   const [result, setResult] = useState(null)
   const [error, setError] = useState(null)
   const [loading, setLoading] = useState(false)
-  const [asked, setAsked] = useState(false)
   const [listening, setListening] = useState(false)
   const [voiceLang, setVoiceLang] = useState('en-IN')
   const recRef = useRef(null)
@@ -849,7 +664,6 @@ function Ask({ prefill }) {
     setLoading(true)
     setResult(null)
     setError(null)
-    setAsked(true)
     try {
       // No Content-Type header on purpose: the body is sent as
       // text/plain, which avoids the CORS preflight that Apps Script
@@ -872,135 +686,121 @@ function Ask({ prefill }) {
   const tier = result ? TIERS[result.tier] || { label: result.tier, cls: '' } : null
 
   return (
-    <div className="pane pane-light">
-      <div className="pane-inner">
-        <section className="hero">
-          <p className="eyebrow">Water Intelligence Modeling · Intelligence layer</p>
-          <h1>
-            Water intelligence,
-            <br />
-            on demand.
-          </h1>
-          <p className="lede">
-            Ask anything about water — fundamentals, engineering, governance.
-            Every answer is grounded in a curated corpus and labelled by source.
-            Ask in English, <span lang="hi">हिंदी</span>, or{' '}
-            <span lang="kn">ಕನ್ನಡ</span>.
-          </p>
+    <aside className="console" aria-label="Ask the corpus">
+      <header className="panel-head">
+        <span className="panel-title">Reference desk</span>
+        <span className="panel-note">EN · हिंदी · ಕನ್ನಡ</span>
+      </header>
 
-          <div className="ask-box">
-            <input
-              type="text"
-              value={question}
-              placeholder="Ask a water question…"
-              aria-label="Your question"
-              onChange={(e) => setQuestion(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && ask()}
-            />
-            {SR && (
-              <button
-                className={`mic-btn${listening ? ' is-listening' : ''}`}
-                onClick={toggleMic}
-                aria-label={listening ? 'Stop listening' : 'Ask by voice'}
-                title={listening ? 'Stop listening' : 'Ask by voice'}
-              >
-                <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
-                  <path
-                    d="M12 3a3 3 0 0 1 3 3v5a3 3 0 0 1-6 0V6a3 3 0 0 1 3-3Zm-6.5 8a.9.9 0 0 1 1.8 0 4.7 4.7 0 0 0 9.4 0 .9.9 0 0 1 1.8 0 6.5 6.5 0 0 1-5.6 6.43V20h2.2a.9.9 0 0 1 0 1.8H8.9a.9.9 0 0 1 0-1.8h2.2v-2.57A6.5 6.5 0 0 1 5.5 11Z"
-                    fill="currentColor"
-                  />
-                </svg>
-              </button>
-            )}
-            <button className="ask-btn" onClick={() => ask()} disabled={loading}>
-              {loading ? 'Consulting…' : 'Ask'}
-            </button>
-          </div>
+      <div className="console-body">
+        <p className="console-hint">
+          Ask anything about water — fundamentals, engineering, governance.
+          Answers come from a curated corpus and carry a source tier.
+        </p>
 
+        <div className="console-input">
+          <input
+            type="text"
+            value={question}
+            placeholder="Ask a water question…"
+            aria-label="Your question"
+            onChange={(e) => setQuestion(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && ask()}
+          />
           {SR && (
-            <div className="voice-row">
-              <span className="voice-label">
-                {listening ? 'Listening — speak now' : 'Voice input'}
-              </span>
-              <div className="voice-langs" role="group" aria-label="Voice language">
-                {VOICE_LANGS.map((v) => (
-                  <button
-                    key={v.code}
-                    className={`voice-lang${voiceLang === v.code ? ' is-on' : ''}`}
-                    onClick={() => setVoiceLang(v.code)}
-                  >
-                    {v.label}
-                  </button>
-                ))}
-              </div>
-            </div>
+            <button
+              className={`mic-btn${listening ? ' is-listening' : ''}`}
+              onClick={toggleMic}
+              aria-label={listening ? 'Stop listening' : 'Ask by voice'}
+              title={listening ? 'Stop listening' : 'Ask by voice'}
+            >
+              <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">
+                <path
+                  d="M12 3a3 3 0 0 1 3 3v5a3 3 0 0 1-6 0V6a3 3 0 0 1 3-3Zm-6.5 8a.9.9 0 0 1 1.8 0 4.7 4.7 0 0 0 9.4 0 .9.9 0 0 1 1.8 0 6.5 6.5 0 0 1-5.6 6.43V20h2.2a.9.9 0 0 1 0 1.8H8.9a.9.9 0 0 1 0-1.8h2.2v-2.57A6.5 6.5 0 0 1 5.5 11Z"
+                  fill="currentColor"
+                />
+              </svg>
+            </button>
           )}
+          <button className="ask-btn" onClick={() => ask()} disabled={loading}>
+            {loading ? '…' : 'Ask'}
+          </button>
+        </div>
 
-          {!asked && (
-            <div className="chips" aria-label="Example questions">
-              {EXAMPLES.map((ex) => (
-                <button key={ex} className="chip" onClick={() => ask(ex)}>
-                  {ex}
+        {SR && (
+          <div className="voice-row">
+            <span className="voice-label">
+              {listening ? 'Listening — speak now' : 'Voice'}
+            </span>
+            <div className="voice-langs" role="group" aria-label="Voice language">
+              {VOICE_LANGS.map((v) => (
+                <button
+                  key={v.code}
+                  className={`voice-lang${voiceLang === v.code ? ' is-on' : ''}`}
+                  onClick={() => setVoiceLang(v.code)}
+                >
+                  {v.label}
                 </button>
               ))}
             </div>
-          )}
-        </section>
+          </div>
+        )}
 
-        <section className="response" aria-live="polite">
-          {loading && (
-            <div className="answer-card loading-card">
-              <div className="pulse-strata">
-                <span />
-                <span />
-                <span />
-                <span />
-                <span />
-              </div>
-              <p className="loading-text">Searching the corpus and composing an answer…</p>
+        {!result && !loading && !error && (
+          <div className="console-examples">
+            {EXAMPLES.map((ex) => (
+              <button key={ex} className="chip" onClick={() => ask(ex)}>
+                {ex}
+              </button>
+            ))}
+          </div>
+        )}
+
+        {loading && (
+          <div className="console-answer">
+            <div className="pulse-strata">
+              <span /><span /><span /><span /><span />
             </div>
-          )}
+            <p className="loading-text">Searching the corpus…</p>
+          </div>
+        )}
 
-          {error && (
-            <div className="answer-card error-card">
-              <p className="error-title">Something went wrong</p>
-              <p className="error-text">{error}</p>
-            </div>
-          )}
+        {error && (
+          <div className="console-answer is-error">
+            <p className="error-title">Something went wrong</p>
+            <p className="error-text">{error}</p>
+          </div>
+        )}
 
-          {result && (
-            <article className="answer-card">
-              <div className="badges">
-                <span className={`badge ${tier.cls}`}>{tier.label}</span>
-                {result.category === 'governance' && (
-                  <span className="badge badge-gov">
-                    Policy / legal — verify against the current official source
-                  </span>
-                )}
-              </div>
-              <p className="answer-text">{result.answer}</p>
-              {result.source && (
-                <p className="answer-source">
-                  <StrataMark size={14} /> Source: {result.source}
-                </p>
+        {result && (
+          <article className="console-answer">
+            <div className="badges">
+              <span className={`badge ${tier.cls}`}>{tier.label}</span>
+              {result.category === 'governance' && (
+                <span className="badge badge-gov">
+                  Policy / legal — verify against the current official source
+                </span>
               )}
-            </article>
-          )}
-        </section>
+            </div>
+            <p className="answer-text">{result.answer}</p>
+            {result.source && (
+              <p className="answer-source">Source: {result.source}</p>
+            )}
+          </article>
+        )}
       </div>
-    </div>
+    </aside>
   )
 }
 
 // ------------------------------------------------------------
-// About tab
+// About view
 // ------------------------------------------------------------
 function About() {
   return (
-    <div className="pane pane-light">
-      <div className="pane-inner about-inner">
+    <div className="about">
+      <div className="about-inner">
         <section className="about-block">
-          <p className="eyebrow">The framework</p>
           <h1>What is WIM?</h1>
           <p className="about-text">
             Water Intelligence Modeling is a framework that integrates water
@@ -1022,7 +822,6 @@ function About() {
         </section>
 
         <section className="about-block">
-          <p className="eyebrow">Provenance</p>
           <h2>Every answer tells you where it came from</h2>
           <div className="tier-cards">
             {TIER_GUIDE.map((t) => (
@@ -1041,13 +840,12 @@ function About() {
         </section>
 
         <section className="about-block">
-          <p className="eyebrow">Learning</p>
           <h2>How it learns</h2>
           <ol className="loop-steps">
-            {LOOP_STEPS.map((s) => (
-              <li key={s.title}>
-                <h3>{s.title}</h3>
-                <p>{s.text}</p>
+            {LOOP_STEPS.map((st) => (
+              <li key={st.title}>
+                <h3>{st.title}</h3>
+                <p>{st.text}</p>
               </li>
             ))}
           </ol>
@@ -1058,72 +856,246 @@ function About() {
 }
 
 // ------------------------------------------------------------
-// App shell with tabs (hash-synced, panels stay mounted)
+// App — the instrument. Map first; console docked beside the
+// readout; About behind a header link.
 // ------------------------------------------------------------
 function App() {
-  const initial = TABS.some((t) => t.id === window.location.hash.slice(1))
-    ? window.location.hash.slice(1)
-    : 'ask'
-  const [tab, setTab] = useState(initial)
+  const [view, setView] = useState(
+    window.location.hash === '#about' ? 'about' : 'observatory'
+  )
+  const [place, setPlace] = useState(null)
+  const [satId, setSatId] = useState('truecolor')
+  const [satDate, setSatDate] = useState(defaultSatDate())
+  const [prefill, setPrefill] = useState(null)
+  const { d, status } = useObservations(place)
 
   useEffect(() => {
-    const onHash = () => {
-      const h = window.location.hash.slice(1)
-      if (TABS.some((t) => t.id === h)) setTab(h)
-    }
+    const onHash = () =>
+      setView(window.location.hash === '#about' ? 'about' : 'observatory')
     window.addEventListener('hashchange', onHash)
     return () => window.removeEventListener('hashchange', onHash)
   }, [])
 
-  const [prefill, setPrefill] = useState(null)
-
-  function go(id) {
-    setTab(id)
-    history.replaceState(null, '', '#' + id)
+  function go(v) {
+    setView(v)
+    history.replaceState(null, '', v === 'about' ? '#about' : '#')
   }
 
-  function askAbout(place) {
-    const region = [place.region, place.country].filter(Boolean).join(', ')
+  function askAbout(p) {
+    const region = [p.region, p.country].filter(Boolean).join(', ')
     setPrefill({
-      text: `Tell me about water in ${place.name}${region ? ', ' + region : ''}`,
+      text: `Tell me about water in ${p.name}${region ? ', ' + region : ''}`,
       at: Date.now(),
     })
-    go('ask')
+    document
+      .querySelector('.console')
+      ?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
   }
+
+  const sat = SAT_LAYERS.find((x) => x.id === satId)
+  const whereParts = [place?.region, place?.country].filter(
+    (x, i, arr) => Boolean(x) && x !== place?.name && arr.indexOf(x) === i
+  )
+  const where = whereParts.join(' · ')
+  const anyLoading = Object.values(status).some((v) => v === 'loading')
+  const anyError = Object.values(status).some((v) => v === 'error')
+  const weatherOk = status.weather === 'ok'
 
   return (
     <div className="shell">
-      <nav className="topbar">
-        <div className="topbar-inner">
+      <header className="chrome">
+        <div className="chrome-inner">
           <span className="brand">
-            <StrataMark />
-            <span className="brand-name">WIM-Assistant</span>
+            <StrataMark size={20} />
+            <span className="brand-text">
+              <strong>WIM</strong>
+              <span className="brand-sub">Water Intelligence Modeling</span>
+            </span>
           </span>
-          <div className="tabs" role="tablist" aria-label="Sections">
-            {TABS.map((t) => (
-              <button
-                key={t.id}
-                role="tab"
-                aria-selected={tab === t.id}
-                className={`tab${tab === t.id ? ' is-on' : ''}`}
-                onClick={() => go(t.id)}
-              >
-                {t.label}
-              </button>
-            ))}
+          <UtcClock />
+          <nav className="chrome-nav">
+            <span
+              className={`feed-summary ${
+                anyError ? 'is-warn' : anyLoading ? 'is-busy' : 'is-ok'
+              }`}
+              title="Data feed health"
+            >
+              <i /> feeds
+            </span>
+            <button
+              className={`chrome-link${view === 'observatory' ? ' is-on' : ''}`}
+              onClick={() => go('observatory')}
+            >
+              Observatory
+            </button>
+            <button
+              className={`chrome-link${view === 'about' ? ' is-on' : ''}`}
+              onClick={() => go('about')}
+            >
+              About
+            </button>
+          </nav>
+        </div>
+      </header>
+
+      {view === 'about' && <About />}
+
+      <main hidden={view !== 'observatory'} className="workspace">
+        <div className="toolstrip">
+          <div className="toolstrip-inner">
+            <PlaceSearch onPick={setPlace} />
+            <div className="sat-chips">
+              {SAT_LAYERS.map((x) => (
+                <button
+                  key={x.id}
+                  className={`sat-chip${satId === x.id ? ' is-on' : ''}`}
+                  onClick={() => setSatId(x.id)}
+                >
+                  {x.label}
+                </button>
+              ))}
+            </div>
+            {satId !== 'none' && (
+              <div className="sat-date">
+                <button onClick={() => setSatDate((v) => shiftDate(v, -1))} aria-label="Previous day">
+                  ‹
+                </button>
+                <span>{prettyDate(satDate)}</span>
+                <button onClick={() => setSatDate((v) => shiftDate(v, 1))} aria-label="Next day">
+                  ›
+                </button>
+              </div>
+            )}
           </div>
         </div>
-      </nav>
 
-      <main className="content">
-        <div hidden={tab !== 'ask'}>
-          <Ask prefill={prefill} />
+        <WorldMap
+          place={place}
+          onPick={setPlace}
+          satId={satId}
+          satDate={satDate}
+          visible={view === 'observatory'}
+        />
+
+        <div className="statusbar">
+          <div className="statusbar-inner">
+            {place ? (
+              <>
+                <span className="st-place">{place.name}</span>
+                {where && <span className="st-where">{where}</span>}
+                <span className="st-coords">
+                  {fmt(place.lat, 3)}°, {fmt(place.lon, 3)}°
+                </span>
+                {anyLoading && <span className="st-reading">reading…</span>}
+                {!place.pin && (
+                  <button className="ask-about" onClick={() => askAbout(place)}>
+                    Ask about {place.name} →
+                  </button>
+                )}
+              </>
+            ) : (
+              <span className="st-empty">
+                Click the map or search a place to read conditions ·{' '}
+                {sat && sat.layer ? sat.label + ' imagery, ' + prettyDate(satDate) : 'no imagery layer'}
+              </span>
+            )}
+          </div>
         </div>
-        <div hidden={tab !== 'observatory'}>
-          <Observatory visible={tab === 'observatory'} onAskAbout={askAbout} />
-        </div>
-        <div hidden={tab !== 'about'}>
-          <About />
+
+        <div className="workbench">
+          <section className="readout" aria-label="Live readout">
+            {!place && (
+              <div className="ob-empty">
+                <StrataMark size={28} />
+                <p>
+                  No point selected. The readout fills in here — rainfall and
+                  water balance, rivers and terrain, air and climate outlook —
+                  for any point on Earth.
+                </p>
+              </div>
+            )}
+
+            {place && status.weather === 'error' && (
+              <p className="live-status">
+                The weather feed could not read this point. Try another point
+                or retry in a moment.
+              </p>
+            )}
+
+            {place && weatherOk && d && (
+              <>
+                {METRIC_GROUPS.map((g) => (
+                  <div key={g.title}>
+                    <h2 className="group-head">{g.title}</h2>
+                    <div className="metrics">
+                      {g.metrics.map((m) => (
+                        <div key={m.field} className="metric">
+                          <span className="metric-value">
+                            {fmt(d[m.field], m.digits)}
+                            {m.pair ? (
+                              <span className="metric-sub"> / {fmt(d[m.pair], m.digits)}°</span>
+                            ) : (
+                              <em>{m.unit}</em>
+                            )}
+                          </span>
+                          <span className="metric-label">{m.label}</span>
+                        </div>
+                      ))}
+                    </div>
+                    {g.title === 'Rainfall and water balance' && d.dates && (
+                      <RainChart
+                        dates={d.dates}
+                        rain={d.rain}
+                        past7={d.rainPast7}
+                        next7={d.rainNext7}
+                      />
+                    )}
+                  </div>
+                ))}
+              </>
+            )}
+
+            <div className="feeds">
+              <h2 className="group-head">Connected data feeds</h2>
+              <ul className="feed-list">
+                {FEEDS.map((f) => (
+                  <li key={f.id} className="feed">
+                    <span className={`feed-dot feed-${status[f.id] || 'idle'}`} aria-hidden="true" />
+                    <span className="feed-name">{f.label}</span>
+                    <span className="feed-provider">{f.provider}</span>
+                  </li>
+                ))}
+                <li className="feed">
+                  <span className="feed-dot feed-ok" aria-hidden="true" />
+                  <span className="feed-name">Satellite imagery</span>
+                  <span className="feed-provider">NASA GIBS — VIIRS, MODIS, GPM IMERG</span>
+                </li>
+                <li className="feed">
+                  <span className="feed-dot feed-ok" aria-hidden="true" />
+                  <span className="feed-name">Place search · base map</span>
+                  <span className="feed-provider">
+                    Open-Meteo geocoding · © OpenStreetMap, © CARTO
+                  </span>
+                </li>
+              </ul>
+              <p className="live-note">
+                Open, keyless APIs read directly in your browser — weather by{' '}
+                <a href="https://open-meteo.com/" target="_blank" rel="noreferrer">
+                  Open-Meteo.com
+                </a>{' '}
+                (CC-BY 4.0), imagery via NASA{' '}
+                <a href="https://worldview.earthdata.nasa.gov/" target="_blank" rel="noreferrer">
+                  GIBS / Worldview
+                </a>
+                . Model and satellite products for orientation and education,
+                not official warnings; coarse at local scale. For decisions,
+                use the responsible national meteorological, hydrological or
+                disaster management agency.
+              </p>
+            </div>
+          </section>
+
+          <Console prefill={prefill} />
         </div>
       </main>
 
