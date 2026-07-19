@@ -379,24 +379,167 @@
   color: #f2fafc;
 }
 
-.district-select select {
-  appearance: none;
+.live-place {
+  margin: 0.45rem 0 0;
+  font-family: var(--font-mono);
+  font-size: 0.86rem;
+  color: #f2fafc;
+  letter-spacing: 0.01em;
+}
+
+.live-place-sub {
+  color: var(--s2);
+}
+
+/* location search */
+.place-search {
+  position: relative;
+  min-width: 16rem;
+  flex: 0 1 22rem;
+}
+
+.place-search input {
+  width: 100%;
   border: 1px solid rgba(167, 220, 232, 0.35);
   background: rgba(8, 61, 79, 0.6);
   color: #e8f4f7;
   font-family: var(--font-body);
-  font-weight: 600;
   font-size: 0.92rem;
   border-radius: 10px;
-  padding: 0.55rem 2.2rem 0.55rem 0.9rem;
-  cursor: pointer;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%23A7DCE8' stroke-width='1.6' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-position: right 0.8rem center;
+  padding: 0.6rem 0.9rem;
 }
 
-.district-select select:hover {
+.place-search input::placeholder {
+  color: rgba(167, 220, 232, 0.6);
+}
+
+.place-search input:hover {
   border-color: var(--s2);
+}
+
+.place-search input:focus {
+  outline: none;
+  border-color: var(--s1);
+  box-shadow: 0 0 0 3px rgba(167, 220, 232, 0.15);
+}
+
+.place-results {
+  position: absolute;
+  z-index: 20;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  margin: 0;
+  padding: 0.3rem;
+  list-style: none;
+  background: #07394a;
+  border: 1px solid rgba(167, 220, 232, 0.28);
+  border-radius: 12px;
+  box-shadow: 0 18px 40px -18px rgba(0, 0, 0, 0.7);
+  max-height: 17rem;
+  overflow-y: auto;
+}
+
+.place-results li {
+  margin: 0;
+}
+
+.place-results button {
+  display: block;
+  width: 100%;
+  text-align: left;
+  border: none;
+  background: transparent;
+  color: #e8f4f7;
+  padding: 0.5rem 0.65rem;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  line-height: 1.35;
+}
+
+.place-results button.is-active,
+.place-results button:hover {
+  background: rgba(167, 220, 232, 0.14);
+}
+
+.place-results button strong {
+  display: block;
+  font-weight: 600;
+}
+
+.place-results button span {
+  display: block;
+  font-size: 0.76rem;
+  color: var(--s2);
+}
+
+.place-msg {
+  padding: 0.55rem 0.65rem;
+  font-size: 0.84rem;
+  color: var(--s1);
+}
+
+/* KMEA quick-pick presets */
+.presets {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 0.9rem;
+  margin-bottom: 1.6rem;
+}
+
+.presets-label {
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(167, 220, 232, 0.7);
+}
+
+.preset-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.preset-chip {
+  border: 1px solid rgba(167, 220, 232, 0.28);
+  background: rgba(8, 61, 79, 0.5);
+  color: #d8eef4;
+  border-radius: 999px;
+  padding: 0.32rem 0.75rem;
+  font-size: 0.82rem;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+
+.preset-chip em {
+  font-style: normal;
+  font-size: 0.66rem;
+  letter-spacing: 0.06em;
+  color: var(--s2);
+  margin-left: 0.35rem;
+}
+
+.preset-chip:hover {
+  border-color: var(--s1);
+  background: rgba(167, 220, 232, 0.12);
+}
+
+.preset-chip.is-on {
+  background: var(--s2);
+  border-color: var(--s2);
+  color: #062e3c;
+  font-weight: 600;
+}
+
+.preset-chip.is-on em {
+  color: #084355;
+}
+
+.live-note a {
+  color: var(--s1);
 }
 
 .live-status {
@@ -753,8 +896,9 @@
     align-items: stretch;
   }
 
-  .district-select select {
+  .place-search {
     width: 100%;
+    flex-basis: auto;
   }
 
   .metric-value {

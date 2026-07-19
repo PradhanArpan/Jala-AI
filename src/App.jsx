@@ -28,18 +28,26 @@ const LAYERS = [
   'Intelligence',
 ]
 
-// Live-conditions locations: Bengaluru + the eight KMEA study
-// districts (coordinates are district headquarters).
-const DISTRICTS = [
-  { name: 'Bengaluru', tag: null, lat: 12.97, lon: 77.59 },
-  { name: 'Hassan', tag: 'CNNL', lat: 13.0, lon: 76.1 },
-  { name: 'Tumakuru', tag: 'CNNL', lat: 13.34, lon: 77.1 },
-  { name: 'Mandya', tag: 'CNNL', lat: 12.52, lon: 76.9 },
-  { name: 'Mysuru', tag: 'CNNL', lat: 12.3, lon: 76.65 },
-  { name: 'Chikkamagaluru', tag: 'VJNL', lat: 13.32, lon: 75.77 },
-  { name: 'Shivamogga', tag: 'KNNL', lat: 13.93, lon: 75.57 },
-  { name: 'Haveri', tag: 'KNNL', lat: 14.79, lon: 75.4 },
-  { name: 'Yadgir', tag: 'KBJNL', lat: 16.77, lon: 77.14 },
+// Default map point and quick-pick presets. Any location worldwide
+// can be searched; these presets are the eight KMEA study districts
+// (coordinates are district headquarters).
+const DEFAULT_PLACE = {
+  name: 'Bengaluru',
+  region: 'Karnataka',
+  country: 'India',
+  lat: 12.97,
+  lon: 77.59,
+}
+
+const KMEA_PRESETS = [
+  { name: 'Hassan', tag: 'CNNL', region: 'Karnataka', country: 'India', lat: 13.0, lon: 76.1 },
+  { name: 'Tumakuru', tag: 'CNNL', region: 'Karnataka', country: 'India', lat: 13.34, lon: 77.1 },
+  { name: 'Mandya', tag: 'CNNL', region: 'Karnataka', country: 'India', lat: 12.52, lon: 76.9 },
+  { name: 'Mysuru', tag: 'CNNL', region: 'Karnataka', country: 'India', lat: 12.3, lon: 76.65 },
+  { name: 'Chikkamagaluru', tag: 'VJNL', region: 'Karnataka', country: 'India', lat: 13.32, lon: 75.77 },
+  { name: 'Shivamogga', tag: 'KNNL', region: 'Karnataka', country: 'India', lat: 13.93, lon: 75.57 },
+  { name: 'Haveri', tag: 'KNNL', region: 'Karnataka', country: 'India', lat: 14.79, lon: 75.4 },
+  { name: 'Yadgir', tag: 'KBJNL', region: 'Karnataka', country: 'India', lat: 16.77, lon: 77.14 },
 ]
 
 const TIER_GUIDE = [
@@ -92,7 +100,7 @@ function StrataMark({ size = 22 }) {
 // Live conditions — fetched directly from Open-Meteo in the
 // browser (free, no key, CORS-enabled). No backend involved.
 // ------------------------------------------------------------
-function useLiveConditions(district) {
+function useLiveConditions(place) {
   const [data, setData] = useState(null)
   const [state, setState] = useState('loading') // loading | ok | error
   const reqId = useRef(0)
@@ -103,13 +111,13 @@ function useLiveConditions(district) {
 
     const wx =
       'https://api.open-meteo.com/v1/forecast' +
-      `?latitude=${district.lat}&longitude=${district.lon}` +
+      `?latitude=${place.lat}&longitude=${place.lon}` +
       '&daily=precipitation_sum,temperature_2m_max,temperature_2m_min,et0_fao_evapotranspiration' +
       '&hourly=soil_moisture_3_to_9cm' +
       '&past_days=7&forecast_days=7&timezone=auto'
     const fl =
       'https://flood-api.open-meteo.com/v1/flood' +
-      `?latitude=${district.lat}&longitude=${district.lon}` +
+      `?latitude=${place.lat}&longitude=${place.lon}` +
       '&daily=river_discharge,river_discharge_max&past_days=7&forecast_days=30'
 
     Promise.all([
@@ -117,7 +125,7 @@ function useLiveConditions(district) {
       fetch(fl).then((r) => r.json()).catch(() => null),
     ])
       .then(([w, f]) => {
-        if (id !== reqId.current) return // stale — a newer district was picked
+        if (id !== reqId.current) return // stale — a newer place was picked
         if (!w || !w.daily) throw new Error('no data')
         const sm = (w.hourly?.soil_moisture_3_to_9cm || []).filter(
           (v) => v !== null
@@ -144,7 +152,7 @@ function useLiveConditions(district) {
       .catch(() => {
         if (id === reqId.current) setState('error')
       })
-  }, [district])
+  }, [place])
 
   return { data, state }
 }
@@ -215,9 +223,137 @@ function RainChart({ dates, rain, past7, next7 }) {
   )
 }
 
+// ------------------------------------------------------------
+// Location search — Open-Meteo geocoding (free, no key,
+// worldwide). Debounced; keyboard accessible.
+// ------------------------------------------------------------
+function PlaceSearch({ onPick }) {
+  const [term, setTerm] = useState('')
+  const [hits, setHits] = useState([])
+  const [open, setOpen] = useState(false)
+  const [busy, setBusy] = useState(false)
+  const [cursor, setCursor] = useState(-1)
+  const boxRef = useRef(null)
+  const reqId = useRef(0)
+
+  useEffect(() => {
+    const q = term.trim()
+    if (q.length < 2) {
+      setHits([])
+      setOpen(false)
+      return
+    }
+    const id = ++reqId.current
+    setBusy(true)
+    const t = setTimeout(() => {
+      fetch(
+        'https://geocoding-api.open-meteo.com/v1/search?name=' +
+          encodeURIComponent(q) +
+          '&count=6&language=en&format=json'
+      )
+        .then((r) => r.json())
+        .then((d) => {
+          if (id !== reqId.current) return
+          setHits(d.results || [])
+          setOpen(true)
+          setCursor(-1)
+        })
+        .catch(() => {
+          if (id === reqId.current) {
+            setHits([])
+            setOpen(true)
+          }
+        })
+        .finally(() => {
+          if (id === reqId.current) setBusy(false)
+        })
+    }, 300)
+    return () => clearTimeout(t)
+  }, [term])
+
+  // close on outside click
+  useEffect(() => {
+    function onDoc(e) {
+      if (boxRef.current && !boxRef.current.contains(e.target)) setOpen(false)
+    }
+    document.addEventListener('mousedown', onDoc)
+    return () => document.removeEventListener('mousedown', onDoc)
+  }, [])
+
+  function choose(h) {
+    onPick({
+      name: h.name,
+      region: h.admin1 || '',
+      country: h.country || '',
+      lat: h.latitude,
+      lon: h.longitude,
+    })
+    setTerm('')
+    setHits([])
+    setOpen(false)
+  }
+
+  function onKeyDown(e) {
+    if (!open || !hits.length) return
+    if (e.key === 'ArrowDown') {
+      e.preventDefault()
+      setCursor((c) => (c + 1) % hits.length)
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault()
+      setCursor((c) => (c - 1 + hits.length) % hits.length)
+    } else if (e.key === 'Enter') {
+      e.preventDefault()
+      choose(hits[cursor >= 0 ? cursor : 0])
+    } else if (e.key === 'Escape') {
+      setOpen(false)
+    }
+  }
+
+  return (
+    <div className="place-search" ref={boxRef}>
+      <input
+        type="text"
+        value={term}
+        placeholder="Search any town, district or city…"
+        aria-label="Search for a location"
+        autoComplete="off"
+        onChange={(e) => setTerm(e.target.value)}
+        onKeyDown={onKeyDown}
+        onFocus={() => hits.length && setOpen(true)}
+      />
+      {open && (
+        <ul className="place-results" role="listbox">
+          {busy && <li className="place-msg">Searching…</li>}
+          {!busy && !hits.length && (
+            <li className="place-msg">No matching place. Try a different spelling.</li>
+          )}
+          {!busy &&
+            hits.map((h, i) => (
+              <li key={h.id}>
+                <button
+                  type="button"
+                  className={i === cursor ? 'is-active' : ''}
+                  onMouseEnter={() => setCursor(i)}
+                  onClick={() => choose(h)}
+                >
+                  <strong>{h.name}</strong>
+                  <span>
+                    {[h.admin1, h.country].filter(Boolean).join(' · ')}
+                  </span>
+                </button>
+              </li>
+            ))}
+        </ul>
+      )}
+    </div>
+  )
+}
+
 function LiveConditions() {
-  const [district, setDistrict] = useState(DISTRICTS[0])
-  const { data, state } = useLiveConditions(district)
+  const [place, setPlace] = useState(DEFAULT_PLACE)
+  const { data, state } = useLiveConditions(place)
+
+  const where = [place.region, place.country].filter(Boolean).join(' · ')
 
   return (
     <section id="live" className="live">
@@ -226,23 +362,29 @@ function LiveConditions() {
           <div>
             <p className="eyebrow eyebrow-light">Observation layer · live</p>
             <h2>Water conditions now</h2>
+            <p className="live-place">
+              {place.name}
+              {place.tag ? ` (${place.tag})` : ''}
+              {where && <span className="live-place-sub"> · {where}</span>}
+            </p>
           </div>
-          <label className="district-select">
-            <span className="visually-hidden">Choose a district</span>
-            <select
-              value={district.name}
-              onChange={(e) =>
-                setDistrict(DISTRICTS.find((d) => d.name === e.target.value))
-              }
-            >
-              {DISTRICTS.map((d) => (
-                <option key={d.name} value={d.name}>
-                  {d.name}
-                  {d.tag ? ` (${d.tag})` : ''}
-                </option>
-              ))}
-            </select>
-          </label>
+          <PlaceSearch onPick={setPlace} />
+        </div>
+
+        <div className="presets">
+          <span className="presets-label">KMEA study districts</span>
+          <div className="preset-chips">
+            {KMEA_PRESETS.map((d) => (
+              <button
+                key={d.name}
+                className={`preset-chip${place.name === d.name ? ' is-on' : ''}`}
+                onClick={() => setPlace(d)}
+              >
+                {d.name}
+                <em>{d.tag}</em>
+              </button>
+            ))}
+          </div>
         </div>
 
         {state === 'loading' && (
@@ -250,8 +392,8 @@ function LiveConditions() {
         )}
         {state === 'error' && (
           <p className="live-status">
-            Live data is unavailable right now. Pick the district again or
-            retry in a moment.
+            Live data is unavailable for this location right now. Search
+            again or retry in a moment.
           </p>
         )}
 
@@ -317,10 +459,13 @@ function LiveConditions() {
         )}
 
         <p className="live-note">
-          Weather data by Open-Meteo.com (CC-BY 4.0) · river discharge from the
-          Copernicus GloFAS model. Model output for orientation, not an
-          official warning — for decisions, consult IMD, CWC and KSNDMC
-          advisories.
+          Weather and location search by{' '}
+          <a href="https://open-meteo.com/" target="_blank" rel="noreferrer">
+            Open-Meteo.com
+          </a>{' '}
+          (CC-BY 4.0) · river discharge from the Copernicus GloFAS model.
+          Model output for orientation, not an official warning — for
+          decisions, consult IMD, CWC and KSNDMC advisories.
         </p>
       </div>
     </section>
