@@ -150,6 +150,30 @@ const METRIC_GROUPS = [
 // add a layer here and it appears as a chip.
 const GIBS_WMS = 'https://gibs.earthdata.nasa.gov/wms/epsg3857/best/wms.cgi?'
 
+// Base maps. "Satellite" is a cloud-free mosaic built from the best
+// available scenes — distinct from the GIBS layers below, which are
+// single-day snapshots and therefore show whatever cloud was present.
+const BASE_MAPS = [
+  {
+    id: 'dark',
+    label: 'Dark',
+    url: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
+    opts: { subdomains: 'abcd', maxZoom: 19 },
+    credit: '© OpenStreetMap contributors, © CARTO',
+  },
+  {
+    id: 'satellite',
+    label: 'Satellite (cloud-free)',
+    url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+    opts: { maxZoom: 19 },
+    credit: 'Imagery © Esri, Maxar, Earthstar Geographics',
+  },
+]
+
+// Country, state and district boundaries with place names.
+const BOUNDARY_URL =
+  'https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}'
+
 const SAT_LAYERS = [
   { id: 'none', label: 'None', layer: null, legend: null },
   {
@@ -476,11 +500,13 @@ function PlaceSearch({ onPick }) {
 // ------------------------------------------------------------
 // The world map. Click any point to read it.
 // ------------------------------------------------------------
-function WorldMap({ place, onPick, satId, satDate, visible }) {
+function WorldMap({ place, onPick, satId, satDate, visible, baseId, boundaries }) {
   const elRef = useRef(null)
   const mapRef = useRef(null)
   const markerRef = useRef(null)
   const overlayRef = useRef(null)
+  const baseRef = useRef(null)
+  const boundRef = useRef(null)
 
   useEffect(() => {
     if (mapRef.current || !elRef.current) return
@@ -491,11 +517,6 @@ function WorldMap({ place, onPick, satId, satDate, visible }) {
       worldCopyJump: true,
       attributionControl: false,
     })
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-      subdomains: 'abcd',
-      maxZoom: 19,
-    }).addTo(map)
-
     map.on('click', (e) => {
       const { lat, lng } = e.latlng
       onPick({
@@ -523,6 +544,31 @@ function WorldMap({ place, onPick, satId, satDate, visible }) {
     }
   }, [visible])
 
+  // base map (swappable)
+  useEffect(() => {
+    const map = mapRef.current
+    if (!map) return
+    if (baseRef.current) map.removeLayer(baseRef.current)
+    const cfg = BASE_MAPS.find((b) => b.id === baseId) || BASE_MAPS[0]
+    const layer = L.tileLayer(cfg.url, { ...cfg.opts, zIndex: 1 })
+    layer.addTo(map)
+    baseRef.current = layer
+  }, [baseId])
+
+  // administrative boundaries, drawn above imagery
+  useEffect(() => {
+    const map = mapRef.current
+    if (!map) return
+    if (boundRef.current) {
+      map.removeLayer(boundRef.current)
+      boundRef.current = null
+    }
+    if (!boundaries) return
+    const layer = L.tileLayer(BOUNDARY_URL, { maxZoom: 19, zIndex: 400 })
+    layer.addTo(map)
+    boundRef.current = layer
+  }, [boundaries])
+
   // satellite overlay
   useEffect(() => {
     const map = mapRef.current
@@ -541,6 +587,7 @@ function WorldMap({ place, onPick, satId, satDate, visible }) {
       time: satDate,
       opacity: cfg.opacity ?? 0.8,
       crossOrigin: true,
+      zIndex: 200,
     })
     wms.addTo(map)
     overlayRef.current = wms
@@ -925,6 +972,8 @@ function App() {
   const [place, setPlace] = useState(null)
   const [satId, setSatId] = useState('truecolor')
   const [satDate, setSatDate] = useState(defaultSatDate())
+  const [baseId, setBaseId] = useState('satellite')
+  const [boundaries, setBoundaries] = useState(true)
   const [prefill, setPrefill] = useState(null)
   const { d, status } = useObservations(place)
 
@@ -1038,6 +1087,27 @@ function App() {
                 </button>
               ))}
             </div>
+            <div className="base-switch" role="group" aria-label="Base map">
+              {BASE_MAPS.map((b) => (
+                <button
+                  key={b.id}
+                  className={`base-btn${baseId === b.id ? ' is-on' : ''}`}
+                  onClick={() => setBaseId(b.id)}
+                >
+                  {b.label}
+                </button>
+              ))}
+            </div>
+
+            <button
+              className={`bound-btn${boundaries ? ' is-on' : ''}`}
+              onClick={() => setBoundaries((v) => !v)}
+              title="Country, state and district boundaries"
+              aria-pressed={boundaries}
+            >
+              Boundaries
+            </button>
+
             <button
               className="locate-btn"
               onClick={locateMe}
@@ -1071,6 +1141,8 @@ function App() {
           satId={satId}
           satDate={satDate}
           visible={view === 'observatory'}
+          baseId={baseId}
+          boundaries={boundaries}
         />
 
         <div className="statusbar">
@@ -1170,7 +1242,8 @@ function App() {
                   <span className="feed-dot feed-ok" aria-hidden="true" />
                   <span className="feed-name">Place search · base map</span>
                   <span className="feed-provider">
-                    Open-Meteo geocoding · © OpenStreetMap, © CARTO
+                    Open-Meteo geocoding · © OpenStreetMap, © CARTO ·
+                    imagery and boundaries © Esri, Maxar, Earthstar Geographics
                   </span>
                 </li>
               </ul>

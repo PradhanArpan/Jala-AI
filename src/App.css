@@ -330,6 +330,63 @@
   font-weight: 600;
 }
 
+.base-switch {
+  display: inline-flex;
+  border: 1px solid var(--chrome-line);
+  border-radius: 999px;
+  padding: 0.1rem;
+  gap: 0.1rem;
+}
+
+.base-btn {
+  border: none;
+  background: transparent;
+  color: var(--chrome-soft);
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.03em;
+  padding: 0.26rem 0.7rem;
+  border-radius: 999px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.base-btn:hover {
+  color: var(--chrome-ink);
+}
+
+.base-btn.is-on {
+  background: var(--chrome-ink);
+  color: var(--chrome);
+  font-weight: 600;
+}
+
+.bound-btn {
+  border: 1px solid var(--chrome-line);
+  background: transparent;
+  color: var(--chrome-soft);
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.03em;
+  border-radius: 999px;
+  padding: 0.3rem 0.75rem;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: border-color 0.15s ease, color 0.15s ease, background-color 0.15s ease;
+}
+
+.bound-btn:hover {
+  color: var(--chrome-ink);
+  border-color: var(--s4);
+}
+
+.bound-btn.is-on {
+  background: rgba(185, 110, 31, 0.16);
+  border-color: var(--amber);
+  color: var(--amber);
+}
+
 .locate-btn {
   border: 1px solid var(--chrome-line);
   background: transparent;
@@ -1309,6 +1366,11 @@
 
   .sat-date {
     margin-left: 0;
+  }
+
+  .base-btn {
+    font-size: 0.66rem;
+    padding: 0.26rem 0.5rem;
   }
 
   .map {
