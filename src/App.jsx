@@ -7,6 +7,12 @@ import './App.css'
 // (Deploy > New deployment > Web app > copy the /exec URL)
 const BACKEND_URL = 'https://script.google.com/macros/s/AKfycbyUyZqGshX-MmaaUBvFk6dSSGlEKaxhtPc-rtRXW_m1W0uqdmgFnGcYfOUyaT5hhFhLkA/exec'
 
+// Published Google Earth Engine App (free, no key, public).
+// Source script lives in the GEE Code Editor; republish there to
+// update. Swap this URL to point at a different published app.
+const GEE_APP_URL =
+  'https://evocative-fort-427508-j2.projects.earthengine.app/view/wim'
+
 // ============================================================
 // DATA-FEED REGISTRY
 // Every external source the Observatory reads is declared here.
@@ -856,13 +862,57 @@ function About() {
 }
 
 // ------------------------------------------------------------
+// Analysis — satellite water-area explorer, embedded from the
+// published Earth Engine App.
+// ------------------------------------------------------------
+function Analysis() {
+  return (
+    <div className="analysis">
+      <div className="analysis-bar">
+        <div className="analysis-bar-inner">
+          <span className="rail-label">Engineering models · Earth Engine</span>
+          <p className="analysis-note">
+            Click any point to compute monthly surface water area from
+            Sentinel-2 imagery (MNDWI), with the JRC 1984&ndash;2021 baseline.
+            Charts can be downloaded as CSV.
+          </p>
+          <a
+            className="analysis-open"
+            href={GEE_APP_URL}
+            target="_blank"
+            rel="noreferrer"
+          >
+            Open full screen &nearr;
+          </a>
+        </div>
+      </div>
+      <iframe
+        className="analysis-frame"
+        src={GEE_APP_URL}
+        title="WIM Surface Water Explorer, powered by Google Earth Engine"
+        loading="lazy"
+      />
+      <p className="analysis-credit">
+        Analysis runs on Google Earth Engine using Copernicus Sentinel-2 data
+        and the JRC Global Surface Water dataset. Water extent is derived by
+        index thresholding and should be validated against ground
+        observations before use in decisions.
+      </p>
+    </div>
+  )
+}
+
+const VIEWS = ['observatory', 'analysis', 'about']
+
+// ------------------------------------------------------------
 // App — the instrument. Map first; console docked beside the
 // readout; About behind a header link.
 // ------------------------------------------------------------
 function App() {
-  const [view, setView] = useState(
-    window.location.hash === '#about' ? 'about' : 'observatory'
-  )
+  const [view, setView] = useState(() => {
+    const h = window.location.hash.slice(1)
+    return VIEWS.indexOf(h) !== -1 ? h : 'observatory'
+  })
   const [place, setPlace] = useState(null)
   const [satId, setSatId] = useState('truecolor')
   const [satDate, setSatDate] = useState(defaultSatDate())
@@ -870,15 +920,17 @@ function App() {
   const { d, status } = useObservations(place)
 
   useEffect(() => {
-    const onHash = () =>
-      setView(window.location.hash === '#about' ? 'about' : 'observatory')
+    const onHash = () => {
+      const h = window.location.hash.slice(1)
+      setView(VIEWS.indexOf(h) !== -1 ? h : 'observatory')
+    }
     window.addEventListener('hashchange', onHash)
     return () => window.removeEventListener('hashchange', onHash)
   }, [])
 
   function go(v) {
     setView(v)
-    history.replaceState(null, '', v === 'about' ? '#about' : '#')
+    history.replaceState(null, '', v === 'observatory' ? '#' : '#' + v)
   }
 
   function locateMe() {
@@ -946,6 +998,12 @@ function App() {
               Observatory
             </button>
             <button
+              className={`chrome-link${view === 'analysis' ? ' is-on' : ''}`}
+              onClick={() => go('analysis')}
+            >
+              Analysis
+            </button>
+            <button
               className={`chrome-link${view === 'about' ? ' is-on' : ''}`}
               onClick={() => go('about')}
             >
@@ -956,6 +1014,7 @@ function App() {
       </header>
 
       {view === 'about' && <About />}
+      {view === 'analysis' && <Analysis />}
 
       <main hidden={view !== 'observatory'} className="workspace">
         <div className="toolstrip">
