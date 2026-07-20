@@ -135,12 +135,40 @@
 }
 
 /* ============================================================
+   VIEWS
+   [hidden] must beat any author display rule, or a hidden view
+   keeps showing under the visible one.
+   ============================================================ */
+[hidden] {
+  display: none !important;
+}
+
+.views {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.view-panel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  animation: view-in 0.22s ease both;
+}
+
+@keyframes view-in {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: none; }
+}
+
+/* ============================================================
    WORKSPACE — toolstrip · map · statusbar · workbench
    ============================================================ */
 .workspace {
   flex: 1;
   display: flex;
   flex-direction: column;
+  animation: view-in 0.22s ease both;
 }
 
 .toolstrip {
@@ -421,11 +449,15 @@
 .ob-empty {
   display: flex;
   align-items: center;
-  gap: 0.9rem;
+  gap: 1rem;
   border: 1px dashed var(--hairline);
   border-radius: 10px;
-  padding: 1.1rem 1.2rem;
+  padding: 1.3rem 1.4rem;
   background: var(--panel);
+}
+
+.ob-empty .strata-mark {
+  opacity: 0.55;
 }
 
 .ob-empty p {
@@ -1021,8 +1053,8 @@
 
 .analysis-frame {
   width: 100%;
-  height: min(74vh, 760px);
-  min-height: 420px;
+  height: min(78vh, 820px);
+  min-height: 460px;
   border: 0;
   display: block;
   background: #04161d;
@@ -1052,6 +1084,11 @@
   display: flex;
   flex-direction: column;
   gap: 2.6rem;
+}
+
+.about-block + .about-block {
+  border-top: 1px solid var(--hairline);
+  padding-top: 2.4rem;
 }
 
 .about-block h1 {

@@ -1013,10 +1013,8 @@ function App() {
         </div>
       </header>
 
-      {view === 'about' && <About />}
-      {view === 'analysis' && <Analysis />}
-
-      <main hidden={view !== 'observatory'} className="workspace">
+      <main className="views">
+      <div hidden={view !== 'observatory'} className="workspace">
         <div className="toolstrip">
           <div className="toolstrip-inner">
             <PlaceSearch onPick={setPlace} />
@@ -1186,6 +1184,15 @@ function App() {
 
           <Console prefill={prefill} />
         </div>
+      </div>
+
+      <div hidden={view !== 'analysis'} className="view-panel">
+        <Analysis />
+      </div>
+
+      <div hidden={view !== 'about'} className="view-panel">
+        <About />
+      </div>
       </main>
 
       <footer className="footer">
