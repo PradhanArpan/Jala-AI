@@ -104,12 +104,16 @@ const FEEDS = [
       '&district=' + encodeURIComponent(admin.district),
     extract: (r) => {
       if (!r || !r.available) return null
+      const agency = (r.in_rain_agency || '')
+        .replace(' MODEL', '')
+        .replace('IMD GRID', 'IMD gridded')
+        .replace('NRSC VIC', 'NRSC VIC')
       return {
         in_district: [r.district, r.state].filter(Boolean).join(', '),
-        in_rain_year: r.in_rain_year,
         in_rain_annual: r.in_rain_annual,
         in_rain_monsoon: r.in_rain_monsoon,
-        in_rain_days: r.in_rain_days,
+        in_rain_source: [agency, r.in_rain_year].filter(Boolean).join(' · '),
+        in_rain_note: r.in_rain_note || '',
       }
     },
   },
@@ -160,10 +164,15 @@ const METRIC_GROUPS = [
     requires: 'in_district',
     metrics: [
       { field: 'in_district', label: 'District', text: true },
-      { field: 'in_rain_annual', label: 'Annual rainfall (IMD gridded)', unit: 'mm', digits: 0 },
+      { field: 'in_rain_annual', label: 'Annual rainfall', unit: 'mm', digits: 0 },
       { field: 'in_rain_monsoon', label: 'Monsoon Jun–Sep', unit: 'mm', digits: 0 },
-      { field: 'in_rain_year', label: 'Reference year', text: true },
+      { field: 'in_rain_source', label: 'Series · year', text: true },
     ],
+    note:
+      'Gridded model estimates published by the Ministry of Jal Shakti on ' +
+      'data.gov.in, not rain-gauge readings. The dataset carries two ' +
+      'independent series; the one shown is whichever has the most recent ' +
+      'complete year for this district.',
   },
   {
     title: 'Air and climate outlook',
@@ -1321,6 +1330,7 @@ function App() {
                         </div>
                       ))}
                     </div>
+                    {g.note && <p className="group-note">{g.note}</p>}
                     {g.title === 'Rainfall and water balance' && d.dates && (
                       <RainChart
                         dates={d.dates}
