@@ -15,31 +15,63 @@ const BACKEND_URL = 'https://script.google.com/macros/s/AKfycbyUyZqGshX-MmaaUBvF
 // published" card instead of a broken frame, so entries can be
 // added before the app exists.
 // ============================================================
+const GEE_BASE = 'https://evocative-fort-427508-j2.projects.earthengine.app/view/'
+
 const GEE_TOOLS = [
   {
-    id: 'waterbody',
-    label: 'Water body time series',
-    url: 'https://evocative-fort-427508-j2.projects.earthengine.app/view/wim',
+    id: 'explorer',
+    label: 'Surface water explorer',
+    url: GEE_BASE + 'wim',
     blurb:
-      'Click on or near any water body. Its outline is taken from the JRC ' +
-      'surface water record, then monthly water spread area is computed ' +
-      'from Sentinel-2 imagery. Click several bodies to compare them on ' +
-      'one chart, and export the series as CSV.',
+      'Click any point on Earth for a monthly surface water area series ' +
+      'from Sentinel-2, alongside the JRC 1984\u20132021 baseline. The ' +
+      'simplest starting point: one click, one water body, one chart.',
     method:
-      'Sentinel-2 MNDWI, cloud-masked, monthly median. Extent delineated ' +
-      'from JRC Global Surface Water 1984-2021.',
+      'Sentinel-2 MNDWI, cloud-masked, monthly median within a fixed ' +
+      'radius of the clicked point.',
+  },
+  {
+    id: 'waterbody',
+    label: 'Compare water bodies',
+    url: GEE_BASE + 'waterbodytimeseries',
+    blurb:
+      'Delineates the actual water body from the JRC surface water record ' +
+      'rather than using a fixed radius, so no buffer needs tuning. Click ' +
+      'several bodies to plot them on one chart and compare filling ' +
+      'behaviour, then export every series as CSV.',
+    method:
+      'Water body extent vectorised from JRC Global Surface Water; monthly ' +
+      'area computed inside that boundary. Fill percentage expresses each ' +
+      'month against the body\u2019s mapped extent, making bodies of ' +
+      'different sizes comparable.',
   },
   {
     id: 'beforeafter',
     label: 'Before / after by year',
-    url: null,
+    url: GEE_BASE + 'wimbeforeafter',
     blurb:
-      'Two linked maps with a wipe handle: set a year on each side and ' +
-      'drag across a tank to see how it has changed. A filmstrip shows ' +
-      'every year as a thumbnail, with water area per year alongside.',
+      'Two linked maps with a wipe handle: set a year on each side and drag ' +
+      'across a tank to see how it has changed. A filmstrip shows every ' +
+      'year as a thumbnail, with water area per year alongside.',
     method:
       'Annual Sentinel-2 median composites, season-matched so like is ' +
-      'compared with like.',
+      'compared with like. Comparing one year\u2019s January against ' +
+      'another year\u2019s July would show monsoon timing, not change.',
+  },
+  {
+    id: 'basins',
+    label: 'Catchments and flow',
+    url: GEE_BASE + 'wim-basins',
+    blurb:
+      'Click a point to delineate the catchment draining into it, with the ' +
+      'river network and a measure of drainage density. A tank is fed by ' +
+      'its catchment, not by the district it sits in \u2014 two tanks in ' +
+      'one taluk can behave quite differently.',
+    method:
+      'HydroSHEDS: HydroBASINS nested drainage units (levels 4\u201312), ' +
+      'HydroRIVERS reaches, and flow accumulation. Derived from SRTM at 15 ' +
+      'arc-second resolution, so catchments below about one square ' +
+      'kilometre are not resolved.',
   },
 ]
 
@@ -1229,38 +1261,6 @@ function App() {
   const [baseId, setBaseId] = useState('satellite')
   const [boundaries, setBoundaries] = useState(true)
   const [geoMsg, setGeoMsg] = useState('')
-  const [showOsm, setShowOsm] = useState(false)
-  const [osm, setOsm] = useState(null)
-  const [osmBusy, setOsmBusy] = useState(false)
-
-  // Physical systems load on demand: the Overpass query is heavy and
-  // most visitors will not need it.
-  useEffect(() => {
-    if (!showOsm || !place) {
-      setOsm(null)
-      return
-    }
-    let cancelled = false
-    setOsmBusy(true)
-    fetch(OVERPASS_URL, {
-      method: 'POST',
-      body: overpassQuery(place.lat, place.lon, OSM_RADIUS_M),
-    })
-      .then((r) => r.json())
-      .then((d) => {
-        if (cancelled) return
-        setOsm({ groups: classifyOsm(d.elements) })
-      })
-      .catch(() => {
-        if (!cancelled) setOsm({ groups: null, failed: true })
-      })
-      .finally(() => {
-        if (!cancelled) setOsmBusy(false)
-      })
-    return () => {
-      cancelled = true
-    }
-  }, [showOsm, place])
   const [prefill, setPrefill] = useState(null)
   const { d, status } = useObservations(place)
 
@@ -1401,15 +1401,6 @@ function App() {
             </div>
 
             <button
-              className={`bound-btn${showOsm ? ' is-on' : ''}`}
-              onClick={() => setShowOsm((v) => !v)}
-              title="Rivers, tanks, dams and wells from OpenStreetMap"
-              aria-pressed={showOsm}
-            >
-              {osmBusy ? 'Loading…' : 'Water systems'}
-            </button>
-
-            <button
               className={`bound-btn${boundaries ? ' is-on' : ''}`}
               onClick={() => setBoundaries((v) => !v)}
               title="Country, state and district boundaries"
@@ -1453,7 +1444,6 @@ function App() {
           visible={view === 'observatory'}
           baseId={baseId}
           boundaries={boundaries}
-          osm={osm}
         />
 
         <div className="statusbar">
@@ -1467,12 +1457,29 @@ function App() {
                   {fmt(place.lat, 3)}°, {fmt(place.lon, 3)}°
                 </span>
                 {anyLoading && <span className="st-reading">reading…</span>}
+                {showOsm && osmBusy && (
+                  <span className="st-reading">loading water systems…</span>
+                )}
+                {showOsm && osm && osm.groups && (
+                  <span className="st-osm">
+                    {Object.values(osm.groups).reduce(
+                      (t, g) => t + g.items.length,
+                      0
+                    )}{' '}
+                    water features · zoom in to see them
+                  </span>
+                )}
                 {!place.pin && (
                   <button className="ask-about" onClick={() => askAbout(place)}>
                     Ask about {place.name} →
                   </button>
                 )}
               </>
+            ) : showOsm ? (
+              <span className="st-empty">
+                Water systems on — click a point to load rivers, tanks and
+                wells within 3 km of it
+              </span>
             ) : (
               <span className="st-empty">
                 Click the map or search a place to read conditions ·{' '}
@@ -1500,46 +1507,6 @@ function App() {
                 The weather feed could not read this point. Try another point
                 or retry in a moment.
               </p>
-            )}
-
-            {place && showOsm && osm && (
-              <div>
-                <h2 className="group-head">
-                  Physical systems · OpenStreetMap
-                </h2>
-                {osm.failed ? (
-                  <p className="live-status">
-                    Could not reach OpenStreetMap. Try again shortly.
-                  </p>
-                ) : (
-                  <>
-                    <div className="metrics">
-                      {Object.entries(osm.groups).map(([k, g]) => (
-                        <div key={k} className="metric">
-                          <span className="metric-value">
-                            {g.items.length}
-                            <em>within 3 km</em>
-                          </span>
-                          <span className="metric-label">
-                            <i
-                              className="osm-key"
-                              style={{ background: g.colour }}
-                              aria-hidden="true"
-                            />
-                            {g.label}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                    <p className="group-note">
-                      Mapped by OpenStreetMap contributors, so coverage is
-                      uneven: a tank missing here is unmapped, not
-                      necessarily absent on the ground. Named features show
-                      their name on hover.
-                    </p>
-                  </>
-                )}
-              </div>
             )}
 
             {place && weatherOk && d && (
